@@ -6,6 +6,7 @@
 
 use frame_support::{decl_module, decl_storage, decl_event, decl_error, dispatch, traits::Get};
 use frame_system::ensure_signed;
+use frame_support::codec::{Encode, Decode};
 
 #[cfg(test)]
 mod mock;
@@ -19,6 +20,12 @@ pub trait Trait: frame_system::Trait {
 	type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
 }
 
+#[derive(Encode, Decode, Default, Clone, PartialEq, Eq, Debug)]
+pub struct NumberStruct {
+    some_number: u32,
+    optional_number: Option<u32>,
+}
+
 // The pallet's runtime storage items.
 // https://substrate.dev/docs/en/knowledgebase/runtime/storage
 decl_storage! {
@@ -29,6 +36,8 @@ decl_storage! {
 		// Learn more about declaring storage items:
 		// https://substrate.dev/docs/en/knowledgebase/runtime/storage#declaring-storage-items
 		Something get(fn something): Option<u32>;
+
+		OptNumber get(fn optional_number): NumberStruct;
 	}
 }
 
@@ -39,6 +48,7 @@ decl_event!(
 		/// Event documentation should end with an array that provides descriptive names for event
 		/// parameters. [something, who]
 		SomethingStored(u32, AccountId),
+		OptNumberStored(NumberStruct, AccountId),
 	}
 );
 
@@ -77,6 +87,22 @@ decl_module! {
 
 			// Emit an event.
 			Self::deposit_event(RawEvent::SomethingStored(something, who));
+			// Return a successful DispatchResult
+			Ok(())
+		}
+
+		#[weight = 10_000 + T::DbWeight::get().writes(1)]
+		pub fn do_optional_number(origin, opt: NumberStruct) -> dispatch::DispatchResult {
+			// Check that the extrinsic was signed and get the signer.
+			// This function will return an error if the extrinsic is not signed.
+			// https://substrate.dev/docs/en/knowledgebase/runtime/origin
+			let who = ensure_signed(origin)?;
+
+			// Update storage.
+			OptNumber::put(&opt);
+
+			// Emit an event.
+			Self::deposit_event(RawEvent::OptNumberStored(opt, who));
 			// Return a successful DispatchResult
 			Ok(())
 		}
